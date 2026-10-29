@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Borgmatic Indicator
+Exec=borgmatic-indicator.py
+Icon=drive-harddisk-symbolic
+X-GNOME-Autostart-enabled=true
