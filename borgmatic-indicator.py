@@ -12,6 +12,7 @@ UNIT = "borgmatic.service"
 STAMP = os.path.expanduser("~/.local/state/borgmatic-last-success")
 CACHE = os.path.expanduser("~/.local/state/borgmatic-archives.json")
 HOME = os.path.expanduser("~")
+ICONS = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
 STALE_H = 36  # so lange ohne erfolgreiches Backup -> Warnung
 
 
@@ -52,7 +53,8 @@ def borg_progress():
 
 class Indicator:
     def __init__(self):
-        self.ind = AI.Indicator.new("borgmatic", "emblem-ok-symbolic", AI.IndicatorCategory.SYSTEM_SERVICES)
+        self.ind = AI.Indicator.new("borgmatic", "borg-ok", AI.IndicatorCategory.SYSTEM_SERVICES)
+        self.ind.set_icon_theme_path(ICONS)
         self.ind.set_status(AI.IndicatorStatus.ACTIVE)
         self.prev_state = None
         self.archives = self.load_cache()
@@ -164,7 +166,7 @@ class Indicator:
             nxt = "?"
 
         if active == "activating":
-            state, icon = "running", "emblem-synchronizing-symbolic"
+            state, icon = "running", "borg-running"
             p = borg_progress()
             self.status_item.set_label("Backup läuft …")
             if p:
@@ -180,22 +182,22 @@ class Indicator:
             self.ind.set_label("", "")
             self.file_item.set_label(f"Nächstes: {nxt}")
             if result not in ("success", ""):
-                state, icon = "failed", "dialog-error-symbolic"
+                state, icon = "failed", "borg-failed"
                 self.status_item.set_label(f"Letzter Lauf fehlgeschlagen ({result})")
             elif time.time() - last_ok > STALE_H * 3600:
-                state, icon = "stale", "dialog-warning-symbolic"
+                state, icon = "stale", "borg-stale"
                 self.status_item.set_label("Backup zu alt")
             else:
-                state, icon = "ok", "emblem-ok-symbolic"
+                state, icon = "ok", "borg-ok"
                 self.status_item.set_label("Backup OK")
             self.detail_item.set_label(f"Letztes erfolgreiches: {ago(last_ok)}" if last_ok else "Noch kein Backup")
 
         if state != self.prev_state and self.prev_state is not None:
             if state == "failed":
-                sh("notify-send", "-u", "critical", "-i", "dialog-error", "Backup fehlgeschlagen",
+                sh("notify-send", "-u", "critical", "-i", os.path.join(ICONS, "borg-failed.svg"), "Backup fehlgeschlagen",
                    "Details: Indikator → Log anzeigen")
             elif self.prev_state == "running" and state == "ok":
-                sh("notify-send", "-i", "emblem-ok-symbolic", "Backup fertig")
+                sh("notify-send", "-i", os.path.join(ICONS, "borg-ok.svg"), "Backup fertig")
             if self.prev_state == "running":
                 self.prev_state = state
                 self.fetch_archives()
