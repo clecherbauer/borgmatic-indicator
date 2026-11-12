@@ -59,6 +59,7 @@ class Indicator:
         self.prev_state = None
         self.archives = self.load_cache()
         self.fetching = False
+        self.frame = None  # Animations-Schritt, solange ein Backup läuft
 
         m = Gtk.Menu()
         self.status_item = self.label_item(m)
@@ -151,6 +152,13 @@ class Indicator:
         self.arch_root.set_label(f"Backups ({len(arch)})")
         self.arch_root.set_submenu(sub)
 
+    def spin(self):
+        if self.frame is None:
+            return False
+        self.ind.set_icon_full(f"borg-running-{self.frame % 4}", "running")
+        self.frame += 1
+        return True
+
     # --- Status
     def tick(self):
         active = sh("systemctl", "--user", "is-active", UNIT)
@@ -166,18 +174,18 @@ class Indicator:
             nxt = "?"
 
         if active == "activating":
-            state, icon = "running", "borg-running"
+            state, icon = "running", None
             p = borg_progress()
             self.status_item.set_label("Backup läuft …")
             if p:
                 read, secs, cur = p
                 self.detail_item.set_label(f"{gb(read)} gelesen · seit {dur(secs)}")
                 self.file_item.set_label("… " + (cur[-60:] if cur else ""))
-                self.ind.set_label(gb(read), "")
+                self.ind.set_label(f"Backup {gb(read)}", "")
             else:
                 self.detail_item.set_label("Vorbereitung / Aufräumen")
                 self.file_item.set_label("")
-                self.ind.set_label("", "")
+                self.ind.set_label("Backup …", "")
         else:
             self.ind.set_label("", "")
             self.file_item.set_label(f"Nächstes: {nxt}")
@@ -203,7 +211,13 @@ class Indicator:
                 self.fetch_archives()
         self.prev_state = state
         self.run_item.set_sensitive(state != "running")
-        self.ind.set_icon_full(icon, state)
+        if state == "running":
+            if self.frame is None:
+                self.frame = 0
+                GLib.timeout_add(400, self.spin)
+        else:
+            self.frame = None
+            self.ind.set_icon_full(icon, state)
         return True
 
 

@@ -3,7 +3,7 @@
 Small GNOME top-bar indicator (AppIndicator) for [borgmatic](https://torsion.org/borgmatic/) running as a **systemd user service**. One Python file, no dependencies beyond what Ubuntu ships.
 
 - Borg logo icon with a state badge: OK · running · stale (no successful backup for 36 h) · failed
-- While a backup runs: bytes read, elapsed time and the file currently being processed (read from `/proc`, no log parsing)
+- While a backup runs: icon turns blue with a spinning badge, the top bar shows `Backup <GB>`; bytes read, elapsed time and the file currently being processed (read from `/proc`, no log parsing)
 - Submenu with the last 15 archives: date, original size, deduplicated (new) size, duration
 - Menu: *Back up now*, *Show log*, *Refresh list*
 - Desktop notification when a backup finishes or fails
@@ -23,6 +23,9 @@ UI strings are German.
    ```yaml
    after_backup:
        - mkdir -p ~/.local/state && date +%s > ~/.local/state/borgmatic-last-success
+
+   # the indicator's archive query briefly locks the repo; let a starting backup wait for it
+   lock_wait: 300
    ```
 
 2. Install and autostart:
