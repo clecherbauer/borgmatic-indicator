@@ -162,6 +162,7 @@ class Indicator:
     # --- Status
     def tick(self):
         active = sh("systemctl", "--user", "is-active", UNIT)
+        sub = sh("systemctl", "--user", "show", UNIT, "-p", "SubState", "--value")
         result = sh("systemctl", "--user", "show", UNIT, "-p", "Result", "--value")
         try:
             last_ok = float(open(STAMP).read())
@@ -173,7 +174,13 @@ class Indicator:
         except (ValueError, IndexError, KeyError, TypeError):
             nxt = "?"
 
-        if active == "activating":
+        if sub == "auto-restart":  # Restart=on-failure wartet auf den nächsten Versuch
+            state, icon = "retry", "borg-stale"
+            self.ind.set_label("", "")
+            self.status_item.set_label("Backup unterbrochen, neuer Versuch folgt")
+            self.detail_item.set_label(f"Letztes erfolgreiches: {ago(last_ok)}" if last_ok else "Noch kein Backup")
+            self.file_item.set_label("")
+        elif active == "activating":
             state, icon = "running", None
             p = borg_progress()
             self.status_item.set_label("Backup läuft …")
@@ -201,7 +208,10 @@ class Indicator:
             self.detail_item.set_label(f"Letztes erfolgreiches: {ago(last_ok)}" if last_ok else "Noch kein Backup")
 
         if state != self.prev_state and self.prev_state is not None:
-            if state == "failed":
+            if state == "retry":
+                sh("notify-send", "-i", os.path.join(ICONS, "borg-stale.svg"), "Backup unterbrochen",
+                   "Neuer Versuch automatisch in einigen Minuten")
+            elif state == "failed":
                 sh("notify-send", "-u", "critical", "-i", os.path.join(ICONS, "borg-failed.svg"), "Backup fehlgeschlagen",
                    "Details: Indikator → Log anzeigen")
             elif self.prev_state == "running" and state == "ok":

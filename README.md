@@ -6,7 +6,7 @@ Small GNOME top-bar indicator (AppIndicator) for [borgmatic](https://torsion.org
 - While a backup runs: icon turns blue with a spinning badge, the top bar shows `Backup <GB>`; bytes read, elapsed time and the file currently being processed (read from `/proc`, no log parsing)
 - Submenu with the last 15 archives: date, original size, deduplicated (new) size, duration
 - Menu: *Back up now*, *Show log*, *Refresh list*
-- Desktop notification when a backup finishes or fails
+- Desktop notification when a backup finishes, is interrupted (waiting for retry) or fails
 
 UI strings are German.
 
@@ -26,6 +26,18 @@ UI strings are German.
 
    # the indicator's archive query briefly locks the repo; let a starting backup wait for it
    lock_wait: 300
+   ```
+
+   Optional, retry an interrupted backup (laptop suspended, network gone) in the service unit; the indicator shows the waiting state:
+
+   ```ini
+   [Unit]
+   StartLimitIntervalSec=3h
+   StartLimitBurst=8
+
+   [Service]
+   Restart=on-failure
+   RestartSec=15min
    ```
 
 2. Install and autostart:
